@@ -140,7 +140,7 @@ def load_workbook(path: Path) -> dict:
 
 def main() -> None:
     src = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("data/pvr202610_tour2.xlsx")
-    dst = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("web/results.geojson")
+    dst = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("docs/results.geojson")
     fc = load_workbook(src)
     dst.write_text(json.dumps(fc, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     n_sections = sum(f["properties"]["n_sections"] for f in fc["features"])
