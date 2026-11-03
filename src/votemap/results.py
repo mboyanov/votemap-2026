@@ -116,16 +116,27 @@ def build_feature_collection(sections: dict, protocols: dict, votes: dict) -> di
     return {"type": "FeatureCollection", "features": features}
 
 
+def excluded_summary(sections: dict, protocols: dict, votes: dict) -> dict:
+    """Sections with results but no coordinates (mobile ПСИК), so the page can say what is missing."""
+    missing = [sid for sid in protocols if sid not in sections]
+    return {
+        "sections": len(missing),
+        "voted": sum(protocols[sid]["voted"] for sid in missing),
+        "blue": sum(votes.get(sid, {}).get(CANDIDATE_BLUE, 0) for sid in missing),
+        "red": sum(votes.get(sid, {}).get(CANDIDATE_RED, 0) for sid in missing),
+    }
+
+
 def load_workbook(path: Path) -> dict:
     wb = openpyxl.load_workbook(path, read_only=True)
     sheet = lambda name: wb[name].iter_rows(values_only=True)
     candidates = {int(r[0]): r[1] for r in list(sheet("Кандидати"))[1:]}
-    fc = build_feature_collection(
-        parse_sections(sheet("Секции")),
-        parse_protocols(sheet("Точки в протоколи")),
-        parse_votes(sheet("Гласове")),
-    )
+    sections = parse_sections(sheet("Секции"))
+    protocols = parse_protocols(sheet("Точки в протоколи"))
+    votes = parse_votes(sheet("Гласове"))
+    fc = build_feature_collection(sections, protocols, votes)
     fc["candidates"] = {"blue": candidates[CANDIDATE_BLUE], "red": candidates[CANDIDATE_RED]}
+    fc["excluded"] = excluded_summary(sections, protocols, votes)
     return fc
 
 

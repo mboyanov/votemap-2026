@@ -1,4 +1,4 @@
-from votemap.results import build_feature_collection, parse_protocols, parse_sections, parse_votes
+from votemap.results import build_feature_collection, excluded_summary, parse_protocols, parse_sections, parse_votes
 
 
 def section_row(sid, lat="42.0", lng="23.1"):
@@ -155,3 +155,14 @@ def test_section_with_no_votes_for_either_has_no_share():
     # THEN the share is None, so the map can paint it as "no data", and the building is marked abroad
     assert props["share_blue"] is None
     assert props["abroad"] is True
+
+
+def test_excluded_summary_counts_sections_without_coordinates():
+    # GIVEN one mapped section and one mobile section that has results but no coordinates
+    sections = {"010100001": location()}
+    protocols = {"010100001": {"registered": 100, "voted": 50}, "012800011": {"registered": 30, "voted": 20}}
+    votes = {"010100001": {4: 30, 25: 20}, "012800011": {4: 5, 25: 14}}
+    # WHEN the excluded summary is built
+    summary = excluded_summary(sections, protocols, votes)
+    # THEN it counts only the mobile section
+    assert summary == {"sections": 1, "voted": 20, "blue": 5, "red": 14}

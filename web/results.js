@@ -52,11 +52,19 @@ const RADIUS_BASE = 1.6;
 const CLUSTER_MAX_ZOOM = 12;
 const SUMMED = ["registered", "voted", "blue", "red", "n_sections"];
 
+// Same breakpoint as the CSS: on phones the legend is a bar at the top, on wider screens a panel at the bottom left.
+const phone = window.matchMedia("(max-width: 640px)").matches;
+
 const map = new maplibregl.Map({
     container: "map",
     style: "https://tiles.openfreemap.org/styles/" + (dark ? "dark" : "positron"),
-    center: [25.3, 42.7],
-    zoom: 6.5,
+    // Start with all of Bulgaria in view, clear of the search box and the legend.
+    bounds: [[22.36, 41.23], [28.61, 44.22]],
+    fitBoundsOptions: {
+        padding: phone
+            ? { top: 120, bottom: 40, left: 10, right: 10 }
+            : { top: 60, bottom: 30, left: 340, right: 60 },
+    },
 });
 map.addControl(new maplibregl.NavigationControl());
 
@@ -293,12 +301,32 @@ function renderLegend(data, names) {
         voted += f.properties.voted;
         sections += f.properties.n_sections;
     }
+    // The headline result also counts the sections that are not on the map, so it matches the official result.
+    const ex = data.excluded;
+    const allBlue = blue + ex.blue, allRed = red + ex.red;
     document.getElementById("totals").textContent =
-        names.blue + " " + pct(blue, blue + red) + " · " + names.red + " " + pct(red, blue + red) +
-        " · " + fmt(sections) + " секции в " + fmt(data.features.length) + " сгради, " + fmt(voted) + " гласували";
+        names.blue + " " + pct(allBlue, allBlue + allRed) + " · " + names.red + " " + pct(allRed, allBlue + allRed);
+    document.getElementById("totals-count").textContent =
+        "На картата: " + fmt(sections) + " секции в " + fmt(data.features.length) + " сгради, " + fmt(voted) + " гласували";
+    document.getElementById("excluded-note").textContent = ex.sections
+        ? fmt(ex.sections) + " подвижни секции (" + fmt(ex.voted) + " гласували) нямат координати и не са на картата. " +
+          "Резултатът в заглавието ги включва."
+        : "";
     document.getElementById("name-blue").textContent = names.blue;
     document.getElementById("name-red").textContent = names.red;
 }
+
+// Phones only: the legend opens and closes with a button, so it does not cover the map.
+function setupLegendToggle() {
+    const legend = document.getElementById("legend");
+    const button = document.getElementById("legend-toggle");
+    button.addEventListener("click", () => {
+        const open = legend.classList.toggle("open");
+        button.setAttribute("aria-expanded", String(open));
+        button.textContent = open ? "Скрий" : "Легенда";
+    });
+}
+setupLegendToggle();
 
 function renderSizeLegend() {
     const zoom = map.getZoom();

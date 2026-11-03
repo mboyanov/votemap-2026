@@ -49,6 +49,10 @@
             bottom: 28px;
             width: 300px;
             max-width: calc(100vw - 56px);
+            /* Stay below the search box on short screens; scroll inside instead. */
+            max-height: calc(100% - 100px);
+            overflow-y: auto;
+            box-sizing: border-box;
             padding: 12px 14px;
             background: var(--surface);
             border: 1px solid var(--border);
@@ -81,7 +85,12 @@
         }
 
         .ramp-names {
-            gap: 8px;
+            flex-wrap: wrap;
+            gap: 0 8px;
+        }
+
+        /* Each name stays on one line; the second name moves down when space is short. */
+        .ramp-names > span {
             white-space: nowrap;
         }
 
@@ -249,13 +258,74 @@
             font-family: ui-monospace, monospace;
         }
 
-        @media (max-width: 480px) {
-            .legend {
+        .legend-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        #legend-toggle {
+            display: none;
+            flex: none;
+            padding: 6px 10px;
+            font: inherit;
+            color: var(--ink);
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .about summary {
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .about p {
+            margin: 6px 0 0;
+            color: var(--ink-muted);
+        }
+
+        .about a {
+            color: inherit;
+        }
+
+        /* Phones: the legend is a short bar under the search box and opens on tap.
+           It sits at the top so the map credit at the bottom stays visible. */
+        @media (max-width: 640px) {
+            .search {
+                top: 8px;
                 left: 8px;
-                right: 8px;
-                bottom: 24px;
+                width: auto;
+                right: 52px;
+                max-width: none;
+            }
+
+            .legend {
+                top: 56px;
+                bottom: auto;
+                left: 8px;
+                right: 52px;
                 width: auto;
                 max-width: none;
+                max-height: calc(100% - 110px);
+                overflow-y: auto;
+                padding: 8px 12px;
+                box-sizing: border-box;
+            }
+
+            .legend h1 {
+                font-size: 13px;
+            }
+
+            #legend-toggle {
+                display: block;
+            }
+
+            .legend:not(.open) #legend-body,
+            .legend:not(.open) #totals-count {
+                display: none;
             }
         }
     </style>
@@ -271,31 +341,50 @@
             aria-label="Търсене" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list">
         <ul id="search-results" role="listbox" hidden></ul>
     </div>
-    <aside class="legend">
-        <h1>Президентски избори 2026 · балотаж</h1>
-        <div class="muted" id="totals">Зареждане…</div>
+    <aside class="legend" id="legend">
+        <div class="legend-head">
+            <div>
+                <h1>Президентски избори 2026 · балотаж</h1>
+                <div class="muted" id="totals">Зареждане…</div>
+                <div class="muted" id="totals-count"></div>
+            </div>
+            <button type="button" id="legend-toggle" aria-expanded="false" aria-controls="legend-body">Легенда</button>
+        </div>
 
+        <div id="legend-body">
         <div class="legend-section">
             <div class="legend-label">Цвят: дял от гласовете за двамата кандидати</div>
             <div class="ramp-names">
                 <span><span class="swatch" id="swatch-red"></span><span id="name-red"></span></span>
                 <span><span class="swatch" id="swatch-blue"></span><span id="name-blue"></span></span>
             </div>
-            <div id="ramp-scale">
+            <div id="ramp-scale" hidden>
                 <div class="ramp" id="ramp"></div>
                 <div class="ramp-ticks"><span>90%</span><span>70%</span><span>50/50</span><span>70%</span><span>90%</span></div>
             </div>
-            <div class="muted" id="pie-note" hidden>Делът на всеки цвят в кръга е делът на кандидата. Синият дял започва от 12 часа.</div>
+            <div class="muted" id="pie-note">Делът на всеки цвят в кръга е делът на кандидата. Синият дял започва от 12 часа.</div>
             <div class="modes">
-                <label><input type="radio" name="color-mode" value="diverging" checked> Скала</label>
+                <label><input type="radio" name="color-mode" value="pie" checked> Кръгови диаграми</label>
+                <label><input type="radio" name="color-mode" value="diverging"> Скала</label>
                 <label><input type="radio" name="color-mode" value="mix"> Смесване (50% = пълен цвят)</label>
-                <label><input type="radio" name="color-mode" value="pie"> Кръгови диаграми</label>
             </div>
         </div>
 
         <div class="legend-section">
             <div class="legend-label">Размер: брой гласували в сградата или групата</div>
             <div class="sizes" id="sizes"></div>
+        </div>
+
+        <details class="legend-section about">
+            <summary>За данните</summary>
+            <p>Резултати и координати на секциите: <a href="https://www.cik.bg/" target="_blank" rel="noopener">ЦИК</a>,
+                втори тур на президентските избори, 1 ноември 2026 г.</p>
+            <p id="excluded-note"></p>
+            <p>Секциите с еднакви координати са показани като една сграда. При по-малък мащаб близките сгради се
+                групират; кликнете върху група, за да я разделите.</p>
+            <p>Дял = гласове за кандидата / гласове за двамата кандидати. Недействителните гласове и „Не подкрепям
+                никого“ не влизат в дела.</p>
+        </details>
         </div>
     </aside>
 </body>
