@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="bg">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Избирателни секции</title>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+    <style>
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+        }
+
+        #map {
+            height: 100%;
+        }
+
+        .popup {
+            font: 13px/1.4 system-ui, sans-serif;
+        }
+
+        .popup-address {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .popup-meta {
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .popup-sections {
+            font-family: ui-monospace, monospace;
+            font-size: 12px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+    </style>
+    <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+
+<body>
+    <div id="map"></div>
+</body>
+
+</html>
