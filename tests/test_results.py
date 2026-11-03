@@ -161,8 +161,7 @@ def test_excluded_summary_counts_sections_without_coordinates():
     # GIVEN one mapped section and one mobile section that has results but no coordinates
     sections = {"010100001": location()}
     protocols = {"010100001": {"registered": 100, "voted": 50}, "012800011": {"registered": 30, "voted": 20}}
-    votes = {"010100001": {4: 30, 25: 20}, "012800011": {4: 5, 25: 14}}
     # WHEN the excluded summary is built
-    summary = excluded_summary(sections, protocols, votes)
+    summary = excluded_summary(sections, protocols)
     # THEN it counts only the mobile section
-    assert summary == {"sections": 1, "voted": 20, "blue": 5, "red": 14}
+    assert summary == {"sections": 1, "voted": 20}

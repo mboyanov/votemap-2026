@@ -116,14 +116,12 @@ def build_feature_collection(sections: dict, protocols: dict, votes: dict) -> di
     return {"type": "FeatureCollection", "features": features}
 
 
-def excluded_summary(sections: dict, protocols: dict, votes: dict) -> dict:
+def excluded_summary(sections: dict, protocols: dict) -> dict:
     """Sections with results but no coordinates (mobile ПСИК), so the page can say what is missing."""
     missing = [sid for sid in protocols if sid not in sections]
     return {
         "sections": len(missing),
         "voted": sum(protocols[sid]["voted"] for sid in missing),
-        "blue": sum(votes.get(sid, {}).get(CANDIDATE_BLUE, 0) for sid in missing),
-        "red": sum(votes.get(sid, {}).get(CANDIDATE_RED, 0) for sid in missing),
     }
 
 
@@ -136,7 +134,7 @@ def load_workbook(path: Path) -> dict:
     votes = parse_votes(sheet("Гласове"))
     fc = build_feature_collection(sections, protocols, votes)
     fc["candidates"] = {"blue": candidates[CANDIDATE_BLUE], "red": candidates[CANDIDATE_RED]}
-    fc["excluded"] = excluded_summary(sections, protocols, votes)
+    fc["excluded"] = excluded_summary(sections, protocols)
     return fc
 
 

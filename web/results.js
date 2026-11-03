@@ -294,23 +294,16 @@ function pct(part, whole) {
 }
 
 function renderLegend(data, names) {
-    let blue = 0, red = 0, voted = 0, sections = 0;
+    let voted = 0, sections = 0;
     for (const f of data.features) {
-        blue += f.properties.blue;
-        red += f.properties.red;
         voted += f.properties.voted;
         sections += f.properties.n_sections;
     }
-    // The headline result also counts the sections that are not on the map, so it matches the official result.
-    const ex = data.excluded;
-    const allBlue = blue + ex.blue, allRed = red + ex.red;
-    document.getElementById("totals").textContent =
-        names.blue + " " + pct(allBlue, allBlue + allRed) + " · " + names.red + " " + pct(allRed, allBlue + allRed);
     document.getElementById("totals-count").textContent =
         "На картата: " + fmt(sections) + " секции в " + fmt(data.features.length) + " сгради, " + fmt(voted) + " гласували";
+    const ex = data.excluded;
     document.getElementById("excluded-note").textContent = ex.sections
-        ? fmt(ex.sections) + " подвижни секции (" + fmt(ex.voted) + " гласували) нямат координати и не са на картата. " +
-          "Резултатът в заглавието ги включва."
+        ? fmt(ex.sections) + " подвижни секции (" + fmt(ex.voted) + " гласували) нямат координати и не са на картата."
         : "";
     document.getElementById("name-blue").textContent = names.blue;
     document.getElementById("name-red").textContent = names.red;
