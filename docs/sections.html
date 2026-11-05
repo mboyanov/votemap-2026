@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="bg">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Балотаж 2026 по области</title>
+    <style>
+        :root {
+            --surface: #fcfcfb;
+            --ink: #1f1f1e;
+            --ink-muted: #6b6a65;
+            --border: rgba(0, 0, 0, 0.12);
+            --grid: rgba(0, 0, 0, 0.35);
+            /* Same as RAMP.blue1 / RAMP.red1 in results.js */
+            --blue: #2a78d6;
+            --red: #e34948;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --surface: #1a1a19;
+                --ink: #ececea;
+                --ink-muted: #a3a29d;
+                --border: rgba(255, 255, 255, 0.14);
+                --grid: rgba(255, 255, 255, 0.35);
+                --blue: #2a78d6;
+                --red: #c23b3b;
+            }
+        }
+
+        :root[data-theme="dark"] {
+            --surface: #1a1a19;
+            --ink: #ececea;
+            --ink-muted: #a3a29d;
+            --border: rgba(255, 255, 255, 0.14);
+            --grid: rgba(255, 255, 255, 0.35);
+            --blue: #2a78d6;
+            --red: #c23b3b;
+        }
+
+        html,
+        body {
+            margin: 0;
+            background: var(--surface);
+            font: 14px/1.4 system-ui, sans-serif;
+            color: var(--ink);
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 16px 32px 24px;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0 0 4px;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        .muted {
+            color: var(--ink-muted);
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 20px;
+            margin: 12px 0 4px;
+        }
+
+        .swatch {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: -1px;
+        }
+
+        #chart {
+            position: relative;
+            min-height: 200px;
+        }
+
+        #chart svg {
+            display: block;
+            width: 100%;
+            font: 13px system-ui, sans-serif;
+        }
+
+        .pt {
+            fill-opacity: 0.35;
+        }
+
+        .pt.blue,
+        .swatch.blue {
+            fill: var(--blue);
+            background: var(--blue);
+        }
+
+        .pt.red,
+        .swatch.red {
+            fill: var(--red);
+            background: var(--red);
+        }
+
+        .box {
+            fill: none;
+            stroke: var(--ink);
+            stroke-width: 1;
+        }
+
+        .box .median {
+            stroke-width: 2.5;
+        }
+
+        .midline {
+            stroke: var(--grid);
+            stroke-dasharray: 4 3;
+        }
+
+        .highlight {
+            fill: none;
+            stroke: var(--ink);
+            stroke-width: 1.5;
+        }
+
+        .tooltip {
+            position: fixed;
+            z-index: 10;
+            pointer-events: none;
+            max-width: 320px;
+            padding: 8px 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tooltip-title {
+            font-weight: 600;
+        }
+
+        .tooltip table {
+            border-collapse: collapse;
+            margin-top: 6px;
+        }
+
+        .tooltip td {
+            padding: 1px 0;
+        }
+
+        .tooltip td:last-child {
+            text-align: right;
+            padding-left: 12px;
+        }
+
+        .tooltip-hint {
+            margin-top: 6px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <a href="index.html" class="muted">← Карта</a>
+        <h1>Президентски избори 2026 · балотаж по области</h1>
+        <div class="muted" id="subtitle">Зареждане…</div>
+        <div class="legend">
+            <span><span class="swatch blue"></span>Мнозинство за <span id="name-blue"></span></span>
+            <span><span class="swatch red"></span>Мнозинство за <span id="name-red"></span></span>
+            <span class="muted">Кутия: медиана и квартили · мустаци: 1,5 × IQR</span>
+        </div>
+        <div id="chart"></div>
+    </main>
+    <div class="tooltip" id="tooltip" hidden></div>
+    <script type="module" src="sections.js"></script>
+</body>
+
+</html>
