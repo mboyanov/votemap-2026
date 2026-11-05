@@ -165,6 +165,88 @@
             margin-top: 6px;
             font-size: 12px;
         }
+
+        .filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0 12px;
+        }
+
+        .filter select {
+            font: inherit;
+            padding: 6px 8px;
+            color: var(--ink);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .region-axis .tick {
+            cursor: pointer;
+        }
+
+        .region-axis .tick:hover text {
+            text-decoration: underline;
+        }
+
+        /* Touch: section details in a panel at the bottom of the screen. */
+        .sheet {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 20;
+            padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.18);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sheet[hidden] {
+            display: none;
+        }
+
+        .sheet .tooltip-title {
+            padding-right: 36px;
+        }
+
+        .sheet table {
+            border-collapse: collapse;
+            margin-top: 6px;
+            width: 100%;
+        }
+
+        .sheet td:last-child {
+            text-align: right;
+        }
+
+        .sheet-close {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+            line-height: 1;
+            color: var(--ink-muted);
+            background: none;
+            border: 0;
+            cursor: pointer;
+        }
+
+        .sheet-link {
+            display: block;
+            margin-top: 10px;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--surface);
+            background: var(--ink);
+            border-radius: 8px;
+        }
     </style>
 </head>
 
@@ -178,9 +260,19 @@
             <span><span class="swatch red"></span>Мнозинство за <span id="name-red"></span></span>
             <span class="muted">Кутия: медиана и квартили · мустаци: 1,5 × IQR</span>
         </div>
+        <label class="filter">Област
+            <select id="region">
+                <option value="">Всички</option>
+            </select>
+        </label>
         <div id="chart"></div>
     </main>
     <div class="tooltip" id="tooltip" hidden></div>
+    <div class="sheet" id="sheet" role="dialog" aria-label="Секция" hidden>
+        <button type="button" class="sheet-close" id="sheet-close" aria-label="Затвори">×</button>
+        <div id="sheet-body"></div>
+        <a class="sheet-link" id="sheet-link" target="_blank" rel="noopener">Видео от секцията ↗</a>
+    </div>
     <script type="module" src="sections.js"></script>
 </body>
 

@@ -7,6 +7,10 @@ const videoUrl = (sectionId) =>
 
 const chartEl = document.getElementById("chart");
 const tooltip = document.getElementById("tooltip");
+const sheet = document.getElementById("sheet");
+const sheetBody = document.getElementById("sheet-body");
+const sheetLink = document.getElementById("sheet-link");
+const regionSelect = document.getElementById("region");
 const fmtInt = d3.format(",");
 const fmtPct = (v) => (v * 100).toFixed(1).replace(".", ",") + "%";
 
@@ -60,7 +64,10 @@ document.getElementById("subtitle").textContent =
     `Всяка точка е една секция (${fmtInt(sections.length)}). ` +
     `Ос X: дял на ${names.red} от гласовете за двамата кандидати. ` +
     `Без ${fmtInt(fc.excluded.sections)} подвижни секции без координати. ` +
-    `Щракнете върху точка, за да отворите видеото от секцията в evideo.bg.`;
+    `Изберете точка, за да отворите видеото от секцията в evideo.bg.`;
+
+for (const r of regions) regionSelect.add(new Option(r.region, r.region));
+regionSelect.addEventListener("change", () => setRegion(regionSelect.value));
 
 // Vertical jitter is fixed per section, so points do not move when the chart is redrawn.
 const rand = d3.randomUniform.source(d3.randomLcg(42))(-0.3, 0.3);
@@ -69,20 +76,35 @@ for (const d of sections) d.jitter = rand();
 let points = [];
 let delaunay = null;
 let highlight = null;
-let shown = null; // section in the tooltip now
+let selected = null; // section in the tooltip or the bottom panel now
 let lastPointerType = "mouse";
+let focusRegion = ""; // "" = all regions
+
+function setRegion(region) {
+    focusRegion = region;
+    regionSelect.value = region;
+    hide();
+    render();
+    if (region) chartEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
 
 function render() {
     const width = chartEl.clientWidth;
     const narrow = width < 600;
-    const margin = { top: 10, right: 16, bottom: 48, left: narrow ? 110 : 160 };
-    const rowHeight = narrow ? 36 : 48;
-    const height = margin.top + margin.bottom + rowHeight * regions.length;
+    const shownRegions = focusRegion ? regions.filter((r) => r.region === focusRegion) : regions;
+    const single = shownRegions.length === 1;
+
+    const margin = single
+        ? { top: 10, right: 16, bottom: 48, left: 16 }
+        : { top: 10, right: 16, bottom: 48, left: narrow ? 110 : 160 };
+    // One region: use most of the screen height, so that the points spread out.
+    const rowHeight = single ? Math.max(320, Math.round(window.innerHeight * 0.6)) : narrow ? 36 : 48;
+    const height = margin.top + margin.bottom + rowHeight * shownRegions.length;
 
     const x = d3.scaleLinear([0, 1], [margin.left, width - margin.right]);
     const y = d3
-        .scaleBand(regions.map((r) => r.region), [margin.top, height - margin.bottom])
-        .padding(0.15);
+        .scaleBand(shownRegions.map((r) => r.region), [margin.top, height - margin.bottom])
+        .padding(single ? 0.02 : 0.15);
 
     chartEl.replaceChildren();
     const svg = d3
@@ -96,10 +118,16 @@ function render() {
     svg.append("g")
         .attr("transform", `translate(0,${height - margin.bottom})`)
         .call(d3.axisBottom(x).ticks(narrow ? 5 : 10, "%"));
-    svg.append("g")
-        .attr("transform", `translate(${margin.left},0)`)
-        .call(d3.axisLeft(y).tickSize(0).tickPadding(8))
-        .call((g) => g.select(".domain").remove());
+    if (!single) {
+        // Region names: tap or click one to show only that region.
+        svg.append("g")
+            .attr("class", "region-axis")
+            .attr("transform", `translate(${margin.left},0)`)
+            .call(d3.axisLeft(y).tickSize(0).tickPadding(8))
+            .call((g) => g.select(".domain").remove())
+            .selectAll(".tick")
+            .on("click", (event, region) => setRegion(region));
+    }
     svg.append("text")
         .attr("x", (margin.left + width - margin.right) / 2)
         .attr("y", height - 8)
@@ -114,11 +142,12 @@ function render() {
         .attr("y1", margin.top)
         .attr("y2", height - margin.bottom);
 
-    points = regions.flatMap((r) =>
+    points = shownRegions.flatMap((r) =>
         r.rows.map((d) => ({
             d,
             px: x(d.rate),
-            py: y(r.region) + y.bandwidth() * (0.5 + d.jitter),
+            // Jitter is ±0.3 of the row; one region gets ±0.45, so the points fill the tall row.
+            py: y(r.region) + y.bandwidth() * (0.5 + d.jitter * (single ? 1.5 : 1)),
         })),
     );
 
@@ -129,16 +158,17 @@ function render() {
         .attr("class", (p) => `pt ${p.d.rate < 0.5 ? "blue" : "red"}`)
         .attr("cx", (p) => p.px)
         .attr("cy", (p) => p.py)
-        .attr("r", narrow ? 1.8 : 2.5);
+        .attr("r", single ? 3.5 : narrow ? 1.8 : 2.5);
 
     const boxes = svg
         .append("g")
         .attr("class", "box")
         .selectAll("g")
-        .data(regions)
+        .data(shownRegions)
         .join("g")
         .attr("transform", (r) => `translate(0,${y(r.region) + y.bandwidth() / 2})`);
-    const half = y.bandwidth() * 0.3;
+    // In single-region mode the box stays small, so it does not hide the points.
+    const half = single ? 14 : y.bandwidth() * 0.3;
     boxes.append("rect")
         .attr("x", (r) => x(r.q1))
         .attr("width", (r) => x(r.q3) - x(r.q1))
@@ -159,39 +189,41 @@ function render() {
         ].join(""),
     );
 
-    highlight = svg.append("circle").attr("class", "highlight").attr("r", 6).style("display", "none");
+    highlight = svg.append("circle").attr("class", "highlight").attr("r", 7).style("display", "none");
     delaunay = d3.Delaunay.from(points, (p) => p.px, (p) => p.py);
 
-    svg.on("pointermove", (event) => {
-        lastPointerType = event.pointerType;
-        const p = nearest(event);
-        p ? show(p, event) : hide();
-    })
-        .on("pointerdown", (event) => (lastPointerType = event.pointerType))
-        .on("pointerleave", hide)
+    svg.on("pointerdown", (event) => (lastPointerType = event.pointerType))
+        .on("pointermove", (event) => {
+            // Touch: no hover. A finger moving over the chart is scrolling.
+            if (event.pointerType !== "mouse") return;
+            lastPointerType = "mouse";
+            const p = nearest(event, 15);
+            p ? showTooltip(p, event) : hide();
+        })
+        .on("pointerleave", (event) => {
+            if (event.pointerType === "mouse") hide();
+        })
         .on("click", (event) => {
-            const p = nearest(event);
-            if (!p) return hide();
-            // On touch, the first tap shows the tooltip and the second tap opens the video.
-            if (lastPointerType === "touch" && shown !== p.d) return show(p, event);
-            window.open(videoUrl(p.d.id), "_blank", "noopener");
+            if (lastPointerType === "mouse") {
+                const p = nearest(event, 15);
+                if (p) window.open(videoUrl(p.d.id), "_blank", "noopener");
+                return;
+            }
+            // Touch and pen: a fingertip is wide, so look further for the nearest point.
+            const p = nearest(event, 24);
+            p ? showSheet(p) : hide();
         });
 }
 
-function nearest(event) {
+function nearest(event, radius) {
     const [mx, my] = d3.pointer(event);
     const p = points[delaunay.find(mx, my)];
-    return p && Math.hypot(p.px - mx, p.py - my) <= 15 ? p : null;
+    return p && Math.hypot(p.px - mx, p.py - my) <= radius ? p : null;
 }
 
-function show(p, event) {
-    const d = p.d;
-    shown = d;
-    highlight.attr("cx", p.px).attr("cy", p.py).style("display", null);
-    chartEl.style.cursor = "pointer";
-
+function sectionHtml(d) {
     const turnout = d.registered ? fmtPct(d.voted / d.registered) : "—";
-    tooltip.innerHTML = `
+    return `
         <div class="tooltip-title">Секция ${d.id}</div>
         <div class="muted">${esc(d.settlement)}, ${esc(d.municipality)} · ${esc(d.region)}</div>
         <div class="muted">${esc(d.address)}</div>
@@ -201,9 +233,21 @@ function show(p, event) {
             <tr><td>Дял на ${esc(names.red)}</td><td><b>${fmtPct(d.rate)}</b></td></tr>
             <tr><td>Гласували / в списъка</td><td>${fmtInt(d.voted)} / ${fmtInt(d.registered)}</td></tr>
             <tr><td>Активност</td><td>${turnout}</td></tr>
-        </table>
-        <div class="tooltip-hint muted">${lastPointerType === "touch" ? "Докоснете отново" : "Щракнете"} за видео от секцията ↗</div>`;
+        </table>`;
+}
+
+function select(p) {
+    selected = p.d;
+    highlight.attr("cx", p.px).attr("cy", p.py).style("display", null);
+}
+
+function showTooltip(p, event) {
+    if (selected !== p.d) {
+        select(p);
+        tooltip.innerHTML = sectionHtml(p.d) + `<div class="tooltip-hint muted">Щракнете за видео от секцията ↗</div>`;
+    }
     tooltip.hidden = false;
+    chartEl.style.cursor = "pointer";
 
     // Keep the tooltip inside the window: flip it to the other side of the cursor near an edge.
     const gap = 14;
@@ -216,9 +260,20 @@ function show(p, event) {
     tooltip.style.top = `${top}px`;
 }
 
+function showSheet(p) {
+    select(p);
+    sheetBody.innerHTML = sectionHtml(p.d);
+    sheetLink.href = videoUrl(p.d.id);
+    sheet.hidden = false;
+    // Leave room below the chart, so the panel never hides the last rows.
+    document.body.style.paddingBottom = `${sheet.offsetHeight}px`;
+}
+
 function hide() {
-    shown = null;
+    selected = null;
     tooltip.hidden = true;
+    sheet.hidden = true;
+    document.body.style.paddingBottom = "";
     highlight?.style("display", "none");
     chartEl.style.cursor = "";
 }
@@ -226,6 +281,11 @@ function hide() {
 function esc(s) {
     return String(s ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
+
+document.getElementById("sheet-close").addEventListener("click", hide);
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") hide();
+});
 
 render();
 let lastWidth = chartEl.clientWidth;
